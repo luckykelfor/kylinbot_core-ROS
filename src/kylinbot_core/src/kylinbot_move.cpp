@@ -10,10 +10,11 @@
 #include <nav_msgs/Odometry.h>
 #include"asp.h"
 #include "serial.h"
-#define MAF_BUF_LEN 20
+#include <iostream>
+#define MAF_BUF_LEN 200
 
-#define BUF_LEN 256
-
+#define BUF_LEN 255
+using namespace std;
 
 ros::Time current_time, last_time;
 int cmd_vel_source = 1;// 0: From image processing 1: From Navigation node
@@ -44,11 +45,16 @@ ZGyroMsg_t zgyroMsg;
 KylinMsg_t kylinMsg;
 
 
-void init()
+void initFIFO()
 {
+		printf("rx add:%d, rx size: %d\n",rx_fifo.m,rx_fifo.s);
     FIFO_Init(&rx_fifo, rx_buf[0], BUF_LEN);
+		printf("rx add:%d, rx size: %d\n",rx_fifo.m,rx_fifo.s);
+	printf("tx add:%d, tx size: %d\n",tx_fifo.m,tx_fifo.s);
     FIFO_Init(&tx_fifo, tx_buf[0], BUF_LEN);
+	printf("tx add:%d, tx size: %d\n",tx_fifo.m,tx_fifo.s);
 }
+
 static void Dnl_ProcKylinMsg(const KylinMsg_t* kylinMsg)
 {
     //printf("*************************************KYLIN********************************************\n");
@@ -64,20 +70,38 @@ void Tri_Init(Tri_t* tri, uint32_t scl)
     tri->dir = 0;
 }
 void PullMsg(ros::Publisher & odom_pub)
+//void PullMsg()
 {
+	printf("INPULL %d",tx_fifo.s);
     // Get fifo free space
     //TODO: publish Odometry message.
+	cout<<"pull 2.1"<<endl;
+	printf("FIFO_GetFree tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
     int len = FIFO_GetFree(&rx_fifo);
-    // If fifo free space insufficient, pop one element out
-    if (!len) {
+    printf("FIFO_GetFree tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
+	// If fifo free space insufficient, pop one element out
+    if (len < 1) {
         uint8_t b;
+		printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
         len = FIFO_Pop(&rx_fifo, &b, 1);
+		printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
     }
+    cout<<"pull 2.2"<<endl;
     // Read input stream according to the fifo free space left
+	printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
+	cout<<"len"<<len<<endl;
     len = read_serial(rx_buf[1], len, 222);
+	printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
+	cout<<"pull 2.3"<<endl;
+    if (len > 0) {
+		
+		FIFO_Push(&rx_fifo, rx_buf[1], len);
+
+	}
+	printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
     //printf("PULL LEN= %d\n", len);
     // Push stream into fifo
-    FIFO_Push(&rx_fifo, rx_buf[1], len);
+    cout<<"pull 2.4"<<endl;
     // Check if any message received
     if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_zgyro, &zgyroMsg)) {
         //Dnl_ProcZGyroMsg(&zgyroMsg);
@@ -92,8 +116,9 @@ void PullMsg(ros::Publisher & odom_pub)
         //uint8_t b;
         //len = FIFO_Pop(&rx_fifo, &b, 1);
     }
-
-
+    printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
+    cout<<"pull 2.5"<<endl;
+	printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
     tf::TransformBroadcaster odom_broadcaster,kylinbot_move_broadcaster;
 
     current_time = ros::Time::now();
@@ -163,17 +188,27 @@ Here we fill in the transform message from our odometry data, and then send the 
 我们发布nav_msgs/Odometry消息(odom)，从而导航包能从中获取机器人的速度。
 我们设置child_frame_id为"base_link"坐标系，因为我们计算的速度才是base_link 坐标系下的速度。
 */
-
+printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
 }
 
 void PushMsg()
 {
 	//txKylinMsg.fs = 1;
 	//txKylinMsg.cv.x = 2000;
-	uint32_t len = Msg_Push(&tx_fifo, tx_buf[1], & msg_head_kylin, &txKylinMsg);
-	FIFO_Pop(&tx_fifo, tx_buf[1], len);
-	write_serial(tx_buf[1], len, 50);
+	cout<<"ok2.1\n"<<endl;
+		printf("%d",tx_fifo.s);
+	if (FIFO_GetFree(&tx_fifo) >= msg_head_kylin.attr.length + MSG_LEN_EXT) {
+		cout<<"ok2.12222222222222222222222\n"<<endl;
+		uint32_t len = Msg_Push(&tx_fifo, tx_buf[1], & msg_head_kylin, &txKylinMsg);
+		cout<<"ok2.2\n"<<endl;
+		FIFO_Pop(&tx_fifo, tx_buf[1], len);
+		cout<<"ok2.3\n"<<endl;
+		//write_serial(tx_buf[1], len, 50);
+		cout<<"ok2.4\n"<<endl;
+	}
+	
 }
+
 void cmd_velSourceCallback(const std_msgs::Int32 & source )
 {
     cmd_vel_source = source.data;
@@ -248,7 +283,7 @@ int main(int argc, char ** argv)
     //ros::Publisher pub = n.advertise<nav_msgs::Odometry_>("kylinbot/Odom",100); //remain buggy.
     ros::Subscriber sub_2 = n.subscribe("cmd_vel",100,controlCmd_velFromeNavigationCallback);
     ros::Subscriber sub_3 = n.subscribe("kylinbot/cmd_vel_source",100,cmd_velSourceCallback);
-
+	
 
     //Publish Odom
 
@@ -256,7 +291,7 @@ int main(int argc, char ** argv)
     ros::Rate r(100);
 
 
-    init();
+    initFIFO();
     uint32_t cnt = 0;
     Rmp_Config(&rmp, 50000);
     Maf_Init(&maf, maf_buf, MAF_BUF_LEN);
@@ -269,11 +304,26 @@ int main(int argc, char ** argv)
         printf("serial open error!\n");
         return -1;
     }
+    printf("add: %d", tx_fifo.m);
+	
     while(ros::ok())
     {
+		//usleep(10000);
+		//cout<<"ok1"<<endl;
         ros::spinOnce();
-        PullMsg(odom_pub);
-		PushMsg();
+		
+		printf("add: %d\n", tx_fifo.m);
+		printf("size: %d\n", tx_fifo.s);
+		//cout<<"ok2"<<endl;
+	//		printf("r:add: %x\n", rx_fifo.m);
+	//	printf("r:size: %d\n", rx_fifo.s);	
+	//	//PushMsg();
+		//cout<<"ok3"<<endl;
+		//usleep(10000);
+       
+		PullMsg(odom_pub);
+		// PushMsg(); 
+		//cout<<"ok4"<<endl;
         r.sleep();
     }
 
