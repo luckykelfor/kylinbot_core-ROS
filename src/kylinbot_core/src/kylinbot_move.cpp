@@ -16,7 +16,7 @@
 
 
 ros::Time current_time, last_time;
-int cmd_vel_source = 1;// 0: From image processing 1: From Navigation node
+int cmd_vel_source = 0;// 0: From image processing 1: From Navigation node
 typedef struct
 {
     uint8_t dir;
@@ -130,7 +130,7 @@ void PullMsg(ros::Publisher & odom_pub)
 
 
 
-    double theta = kylinMsg.cp.z;
+    double theta = kylinMsg.cp.z/1000.0;
     //since all odometry is 6DOF we'll need a quaternion created from yaw
     /* 将里程计的偏航角转换成四元数，四元数效率高，这样使用二维和三维的功能包是一样的。*/
     geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
@@ -144,8 +144,8 @@ void PullMsg(ros::Publisher & odom_pub)
 Here we'll create a TransformStamped message that we will send out over tf. We want to publish the transform from the "odom" frame to the "base_link" frame at current_time. Therefore, we'll set the header of the message and the child_frame_id accordingly, making sure to use "odom" as the parent coordinate frame and "base_link" as the child coordinate frame.
 */
 
-    odom_trans.transform.translation.x = kylinMsg.cp.x; //Make sure the direction is correct
-    odom_trans.transform.translation.y = kylinMsg.cp.y;
+    odom_trans.transform.translation.x = kylinMsg.cp.x/1000.0; //Make sure the direction is correct
+    odom_trans.transform.translation.y = kylinMsg.cp.y/1000.0;
     odom_trans.transform.translation.z = 0.0;
     odom_trans.transform.rotation = odom_quat;
     //send the transform
@@ -160,8 +160,8 @@ Here we'll create a TransformStamped message that we will send out over tf. We w
     odom.header.frame_id = "odom";
 
     //set the position
-    odom.pose.pose.position.x = kylinMsg.cp.x;
-    odom.pose.pose.position.y = kylinMsg.cp.y;
+    odom.pose.pose.position.x = kylinMsg.cp.x/1000.0;
+    odom.pose.pose.position.y = kylinMsg.cp.y/1000.0;
     odom.pose.pose.position.z = 0.0;
     odom.pose.pose.orientation = odom_quat;
 
@@ -170,8 +170,8 @@ Here we fill in the transform message from our odometry data, and then send the 
 */
     //set the velocity
     odom.child_frame_id = "base_link";
-    odom.twist.twist.linear.x = kylinMsg.cv.x;
-    odom.twist.twist.linear.y = kylinMsg.cv.y;
+    odom.twist.twist.linear.x = kylinMsg.cv.x/1000.0;
+    odom.twist.twist.linear.y = kylinMsg.cv.y/1000.0;
     odom.twist.twist.angular.z = kylinMsg.cv.z;
 
     //publish the message

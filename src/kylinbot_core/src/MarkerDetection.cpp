@@ -6,38 +6,56 @@
 #include "main.h"
 #include "RMVideoCapture.hpp"
 #include<geometry_msgs/Twist.h>
-#include "serial.h"
+
+#define COM_PORT 1 //"COM7"
 #define BUF_LEN 256
 #define TIMEOUT 30
-int lostFlag = 0;
+#define FRAME_N 20000
 
-
-#define BUFFER_EXPOSURE_VALUE 150
-//#define DEFAULT_FRAME_WIDTH 1280
-//#define DEFAULT_FRAME_HEIGHT 720
-#define DEFAULT_FRAME_WIDTH 640
-#define DEFAULT_FRAME_HEIGHT 480
 #define _SHOW_PHOTO
 //#define _SHOW_OUTPUT
-
+//#define Camera_One
 
 using namespace cv;
 
 using namespace std;
 
-
-
-int thresh = 50, N =1;
 const char* wndname = "Square Detection Demo";
 
-// int grey_thresh=60;
-int grey_thresh=50;
+int grey_thresh=100;
+int numframe=0;   //frame numbers
+int lost_numframe=0;
+double omission=0.0;
 
+RMVideoCapture capture("/dev/video0", 3);
+int exp_time = 62;
+int gain = 30;
+int brightness_ = 10;
+int whiteness_ = 86;
+int saturation_ = 60;
 double ry,rz,rx;
 double tx,ty,tz;
+/*
+//for 640*480
 Mat cameraMatrix=(Mat_<double>(3,3)<<569.2681,0,288.1437,0,569.4591,263.6782,0,0,1);
 //for 640x480.
 Mat distCoeffs=(Mat_<double>(1,4)<<0.0344,-0.0085,-0.0032,-0.0028);
+*/
+#ifdef Camera_One
+//for 800*600
+//camera 1
+Mat cameraMatrix=(Mat_<double>(3,3)<<942.6637,0,342.8562,0,943.0159,320.2033,0,0,1);
+
+Mat distCoeffs=(Mat_<double>(1,4)<<-0.2248,11.8088,-0.0071,0.0045);
+
+#else
+
+//camera 2
+Mat cameraMatrix=(Mat_<double>(3,3)<<1079.2096,0,342.5224,0,1075.3261,353.0309,0,0,1);
+
+Mat distCoeffs=(Mat_<double>(1,4)<<-0.4513,0.1492,-0.0030,0.0043);
+#endif
+
 Point3f world_pnt_tl(-65,-85,0);   //unit: mm
 Point3f world_pnt_tr(65,-85,0);
 Point3f world_pnt_br(65,85,0);
@@ -64,6 +82,7 @@ public:
 
 
 
+
 static double angle( Point pt1, Point pt2, Point pt0 )
 {
     double dx1 = pt1.x - pt0.x;
@@ -75,9 +94,7 @@ static double angle( Point pt1, Point pt2, Point pt0 )
 
 static void findSquares( Mat src,const Mat& image, vector<vector<Point> >& squares )
 {
-    squares.clear();
-
-    Mat pyr, timg, gray0(image.size(), CV_8U), gray;
+    Mat pyr, timg, gray0(image.size(), CV_8U),Src_HSV(image.size(), CV_8U), gray;
 
     pyrDown(image, pyr, Size(image.cols/2, image.rows/2));
     pyrUp(pyr, timg, image.size());
@@ -88,117 +105,139 @@ static void findSquares( Mat src,const Mat& image, vector<vector<Point> >& squar
     vector<vector<Point>> rect_2;
     vector<vector<Point>> rect_3;
     vector<vector<Point>> out;
+    //vector<Mat> channels;
+    /*
+	cvtColor( timg, Src_HSV, CV_BGR2HSV);
+    split(Src_HSV,channels);
 
 
-    cvtColor( timg, gray0, CV_BGR2GRAY );
-    for( int l = 0; l < N; l++ )
-    {
-        Canny(gray0, gray, 40, 200, 5);
+    Mat H=channels.at(0);
+    cout<<"H="<<(int)H.at<uchar>(50,50)<<endl;
+    Mat S=channels.at(1);
+    cout<<"S="<<(int)S.at<uchar>(50,50)<<endl;
+    Mat V=channels.at(2);
+    cout<<"V="<<(int)V.at<uchar>(50,50)<<"size="<<V.size()<<endl;
+    Mat V0(H.size(),CV_8U,Scalar::all(150));
+    //nomalizationdouble ry,rz,rx;
+double tx,ty,tz;
+    channels.at(0)=H*150/V;
+
+    channels.at(1)=S*150/V;
+    channels.at(2)=V0;
+    cout<<"V0="<<V0.size()<<endl;
+    //merge(channels,Src_HSV);
+    //cvtColor(Src_HSV,timg, CV_HSV2BGR);
+   */
+    cout<<"find squares src.chan="<<src.channels()<<endl;
+    cvtColor( src, gray0, CV_BGR2GRAY);
+
+    Canny(gray0, gray, 50, 200, 5);
+
 #ifdef _SHOW_PHOTO
-        imshow("Canny", gray);
+    imshow("Canny", gray);
 #endif
-        //dilate(gray, gray, Mat(), Point(-1,-1));
-        findContours(gray, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 
-        vector<Point> approx;
+    //dilate(gray, gray, Mat(), Point(-1,-1));
+    findContours(gray, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 
-        for( size_t i = 0; i < contours.size(); i++ )
+    vector<Point> approx;
+
+    for( size_t i = 0; i < contours.size(); i++ )
+    {
+        if (contours[i].size() < 50 || contours[i].size() > 400)
         {
-            if (contours[i].size() < 50 || contours[i].size() > 400)
+            continue;
+        }
+        //cout<<"rectangle detected 1111"<<endl;
+
+        approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.03, true);
+
+        //cout<<approx.size()<<" "<< fabs(contourArea(Mat(approx))) << " " <<  isContourConvex(Mat(approx)) <<endl;
+
+        if( approx.size() == 4 && fabs(contourArea(Mat(approx))) > 1000 && isContourConvex(Mat(approx)) )
+        {
+            //cout<<"rectangle detected  2222"<<endl;
+            double maxCosine = 0;
+            for( int j = 2; j < 5; j++ )
             {
-                continue;
+                double cosine = fabs(angle(approx[j%4], approx[j-2], approx[j-1]));
+                maxCosine = MAX(maxCosine, cosine);
             }
-            //cout<<"rectangle detected 1111"<<endl;
-
-            approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.03, true);
-
-            //cout<<approx.size()<<" "<< fabs(contourArea(Mat(approx))) << " " <<  isContourConvex(Mat(approx)) <<endl;
-
-            if( approx.size() == 4 && fabs(contourArea(Mat(approx))) > 1000 && isContourConvex(Mat(approx)) )
+            if( maxCosine < 0.3 )
             {
-                //cout<<"rectangle detected  2222"<<endl;
-                double maxCosine = 0;
-                for( int j = 2; j < 5; j++ )
+                counts++;
+                int tl_x,tl_y,br_x,br_y;
+                int tl_x_2,tl_y_2,br_x_2,br_y_2;
+                int tl_x_3,tl_y_3,br_x_3,br_y_3;
+                Sort_rect(approx);
+                if(counts>100)
+                    counts=counts%10+2;
+                if(counts==1)
                 {
-                    double cosine = fabs(angle(approx[j%4], approx[j-2], approx[j-1]));
-                    maxCosine = MAX(maxCosine, cosine);
-                }
-                if( maxCosine < 0.3 )
-                {
-                    counts++;
-                    int tl_x,tl_y,br_x,br_y;
-                    int tl_x_2,tl_y_2,br_x_2,br_y_2;
-                    int tl_x_3,tl_y_3,br_x_3,br_y_3;
-                    Sort_rect(approx);
-                    if(counts>100)
-                        counts=counts%10+2;
-                    if(counts==1)
-                    {
-                        cand_1=approx;
-                        tl_x=approx[0].x;
-                        tl_y=approx[0].y;
-                        br_x=approx[2].x;
-                        br_y=approx[2].y;
+                    cand_1=approx;
+                    tl_x=approx[0].x;
+                    tl_y=approx[0].y;
+                    br_x=approx[2].x;
+                    br_y=approx[2].y;
 #ifdef _SHOW_OUTPUT
-                        cout<<"rect_1 come ! "<<endl;
+                    cout<<"rect_1 come ! "<<endl;
                             //cout<<"static int tl x: "<<tl_x<<endl;
                             //cout<<"static int tl y: "<<tl_y<<endl;
                             //cout<<"static int br x: "<<br_x<<endl;
                             //cout<<"static int br y: "<<br_y<<endl;
 #endif
-                    }
+                }
+                else
+                {
+                    if(abs(tl_x-approx[0].x)<10&&abs(tl_y-approx[0].y)<10&&abs(br_x-approx[2].x)<10&&abs(br_y-approx[2].y)<10)
+                        continue;
                     else
                     {
-                        if(abs(tl_x-approx[0].x)<10&&abs(tl_y-approx[0].y)<10&&abs(br_x-approx[2].x)<10&&abs(br_y-approx[2].y)<10)
-                            continue;
-                        else
+                        counts_2++;
+                        if(counts_2>100)
+                            counts_2=counts_2%10+2;
+                        if(counts_2==1)
                         {
-                            counts_2++;
-                            if(counts_2>100)
-                                counts_2=counts_2%10+2;
-                            if(counts_2==1)
-                            {
-                                cand_2=approx;
-                                tl_x_2=approx[0].x;
-                                tl_y_2=approx[0].y;
-                                br_x_2=approx[2].x;
-                                br_y_2=approx[2].y;
+                            cand_2=approx;
+                            tl_x_2=approx[0].x;
+                            tl_y_2=approx[0].y;
+                            br_x_2=approx[2].x;
+                            br_y_2=approx[2].y;
 #ifdef _SHOW_OUTPUT
-                                cout<<"rect_2 come ! "<<endl;
+                            cout<<"rect_2 come ! "<<endl;
                                 //cout<<"static int tl x: "<<tl_x_2<<endl;
                                 //cout<<"static int tl y: "<<tl_y_2<<endl;
                                 //cout<<"static int br x: "<<br_x_2<<endl;
                                 //cout<<"static int br y: "<<br_y_2<<endl;
 #endif
-                            }
+                        }
+                        else
+                        {
+                            if(abs(tl_x_2-approx[0].x)<10&&abs(tl_y_2-approx[0].y)<10&&abs(br_x_2-approx[2].x)<10&&abs(br_y_2-approx[2].y)<10)
+                                continue;
                             else
                             {
-                                if(abs(tl_x_2-approx[0].x)<10&&abs(tl_y_2-approx[0].y)<10&&abs(br_x_2-approx[2].x)<10&&abs(br_y_2-approx[2].y)<10)
-                                    continue;
-                                else
+                                counts_3++;
+                                if(counts_3>100)
+                                    counts_3=counts_3%10+2;
+                                if(counts_3==1)
                                 {
-                                    counts_3++;
-                                    if(counts_3>100)
-                                        counts_3=counts_3%10+2;
-                                    if(counts_3==1)
-                                    {
-                                        cand_3=approx;
-                                        tl_x_3=approx[0].x;
-                                        tl_y_3=approx[0].y;
-                                        br_x_3=approx[2].x;
-                                        br_y_3=approx[2].y;
+                                    cand_3=approx;
+                                    tl_x_3=approx[0].x;
+                                    tl_y_3=approx[0].y;
+                                    br_x_3=approx[2].x;
+                                    br_y_3=approx[2].y;
 #ifdef _SHOW_OUTPUT
-                                        cout<<"rect_3 come ! "<<endl;
+                                    cout<<"rect_3 come ! "<<endl;
                                         //cout<<"static int tl x: "<<tl_x_3<<endl;
                                         //cout<<"static int tl y: "<<tl_y_3<<endl;
                                         //cout<<"static int br x: "<<br_x_3<<endl;
                                         //cout<<"static int br y: "<<br_y_3<<endl;
 #endif
-                                        if(abs(tl_x_3-approx[0].x)<10&&abs(tl_y_3-approx[0].y)<10&&abs(br_x_3-approx[2].x)<10&&abs(br_y_3-approx[2].y)<10)
-                                            continue;
-                                        else
-                                            out.push_back(approx);
-                                    }
+                                    if(abs(tl_x_3-approx[0].x)<10&&abs(tl_y_3-approx[0].y)<10&&abs(br_x_3-approx[2].x)<10&&abs(br_y_3-approx[2].y)<10)
+                                        continue;
+                                    else
+                                        out.push_back(approx);
                                 }
                             }
                         }
@@ -209,26 +248,32 @@ static void findSquares( Mat src,const Mat& image, vector<vector<Point> >& squar
     }
     if(cand_1.size()>0)
     {
-        Mat ROI_image;
+
         Rect roi(cand_1[0],cand_1[2]);
-        src(roi).copyTo(ROI_image);
+
+        Mat ROI_image(src,roi); //src(roi).copyTo(ROI_image);
         int rect_1_true=Color_judge(ROI_image,(cand_1[2].x-cand_1[0].x)*(cand_1[2].y-cand_1[0].y));
+        cout<<"rect1 true: "<<rect_1_true<<endl;
         if(rect_1_true)
             squares.push_back(cand_1);
         if(cand_2.size()>0)
         {
-            Mat ROI_image_2;
+            //Mat ROI_image_2;
             Rect roi_2(cand_2[0],cand_2[2]);
-            src(roi_2).copyTo(ROI_image_2);
+            Mat ROI_image_2(src,roi_2);;
+            //src(roi_2).copyTo(ROI_image_2);
             int rect_2_true=Color_judge(ROI_image_2,(cand_2[2].x-cand_2[0].x)*(cand_2[2].y-cand_2[0].y));
+            cout<<"rect2 true: "<<rect_2_true<<endl;
             if(rect_2_true)
                 squares.push_back(cand_2);
             if(cand_3.size()>0)
             {
-                Mat ROI_image_3;
+
                 Rect roi_3(cand_3[0],cand_3[2]);
-                src(roi_3).copyTo(ROI_image_3);
+                Mat ROI_image_3(src,roi_3);
+                // src(roi_3).copyTo(ROI_image_3);
                 int rect_3_true=Color_judge(ROI_image_3,(cand_3[2].x-cand_3[0].x)*(cand_3[2].y-cand_3[0].y));
+                cout<<"rect3 true: "<<rect_3_true<<endl;
                 if(rect_3_true)
                     squares.push_back(cand_3);
                 if(out.size()>0)
@@ -249,6 +294,64 @@ static void drawSquares( Mat& image, const vector<vector<Point> >& squares )
 #endif
     }
     cout<<"squares.size: "<<squares.size()<<endl;
+
+    //caculate the omission rate
+    numframe++;
+
+
+    if(squares.size()==0)
+        lost_numframe++;
+    if(numframe>=50)
+    {
+        omission=((double)lost_numframe)/(double)numframe;
+        numframe=0;
+        lost_numframe=0;
+    }
+#ifdef _SHOW_PHOTO
+    char str_y[20];
+    char str_z[20];
+    char str_x[20];
+    char str_tz[20];
+    char str_ty[20];
+    char str_tx[20];
+    char str_om[20];
+    sprintf(str_y,"%lf",ry);
+    sprintf(str_z,"%lf",rz);
+    sprintf(str_x,"%lf",rx);
+    sprintf(str_tz,"%lf",tz);
+    sprintf(str_ty,"%lf",ty);
+    sprintf(str_tx,"%lf",tx);
+    sprintf(str_om,"%lf",omission);
+    string pre_str_y="thetay: ";
+    string pre_str_z="thetaz: ";
+    string pre_str_x="thetax: ";
+    string pre_str_tz="tz: ";
+    string pre_str_ty="ty: ";
+    string pre_str_tx="tx: ";
+    string pre_str_om="omiss: ";
+    string full_y=pre_str_y+str_y;
+    string full_z=pre_str_z+str_z;
+    string full_x=pre_str_x+str_x;
+    string full_tz=pre_str_tz+str_tz;
+    string full_ty=pre_str_ty+str_ty;
+    string full_tx=pre_str_tx+str_tx;
+    string full_om=pre_str_om+str_om;
+    putText(image,full_y,Point(30,30),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,0,255),2);
+    putText(image,full_z,Point(30,70),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,255,0),2);
+    putText(image,full_x,Point(30,100),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,255,0),2);
+    putText(image,full_tz,Point(30,130),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,0,255),2);
+    putText(image,full_ty,Point(30,170),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,255,0),2);
+    putText(image,full_tx,Point(30,200),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,255,0),2);
+    putText(image,full_om,Point(30,240),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,255,0),2);
+#endif
+
+#ifdef _SHOW_PHOTO
+    imshow(wndname, image);
+#endif
+}
+
+void LocationMarkes(const vector<vector<Point> >& squares)
+{
     if(squares.size()>0)
     {
         Point tl,tr,br,bl;
@@ -267,46 +370,7 @@ static void drawSquares( Mat& image, const vector<vector<Point> >& squares )
         br=squares[id][2];
         bl=squares[id][3];
         Calcu_attitude(world_pnt_tl,world_pnt_tr,world_pnt_br,world_pnt_bl,tl,tr,br,bl);
-        //cout<<"final tl: "<<tl<<endl;
-        //cout<<"final tr: "<<tr<<endl;
-        //cout<<"final br: "<<br<<endl;
-        //cout<<"final bl: "<<bl<<endl;
-#ifdef _SHOW_PHOTO
-        char str_y[20];
-        char str_z[20];
-        char str_x[20];
-        char str_tz[20];
-        char str_ty[20];
-        char str_tx[20];
-        sprintf(str_y,"%lf",ry);
-        sprintf(str_z,"%lf",rz);
-        sprintf(str_x,"%lf",rx);
-        sprintf(str_tz,"%lf",tz);
-        sprintf(str_ty,"%lf",ty);
-        sprintf(str_tx,"%lf",tx);
-        string pre_str_y="thetay: ";
-        string pre_str_z="thetaz: ";
-        string pre_str_x="thetax: ";
-        string pre_str_tz="tz: ";
-        string pre_str_ty="ty: ";
-        string pre_str_tx="tx: ";
-        string full_y=pre_str_y+str_y;
-        string full_z=pre_str_z+str_z;
-        string full_x=pre_str_x+str_x;
-        string full_tz=pre_str_tz+str_tz;
-        string full_ty=pre_str_ty+str_ty;
-        string full_tx=pre_str_tx+str_tx;
-        putText(image,full_y,Point(30,30),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,0,255),2);
-        putText(image,full_z,Point(30,70),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,255,0),2);
-        putText(image,full_x,Point(30,100),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,255,0),2);
-        putText(image,full_tz,Point(30,130),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,0,255),2);
-        putText(image,full_ty,Point(30,170),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,255,0),2);
-        putText(image,full_tx,Point(30,200),CV_FONT_HERSHEY_SIMPLEX,1,Scalar(0,255,0),2);
-#endif
     }
-#ifdef _SHOW_PHOTO
-    imshow(wndname, image);
-#endif
 }
 
 
@@ -358,10 +422,15 @@ void Calcu_attitude(Point3f world_pnt_tl,Point3f world_pnt_tr,Point3f world_pnt_
 int Color_judge(Mat &src,int area)
 {
     //judge from the center point: BGR
+    Mat dst;
+    cout<<"color judges 1 src.chan="<<src.channels()<<endl;
+    cvtColor( src, dst, CV_BGR2HSV);
+    //src = dst;
+
     int x=src.cols/2;
     int y=src.rows/2;
-    cout<<"RGB of Center ("<<y<<","<<x<<")="<<(int)src.at<Vec3b>(y,x)[0]<<" "<<(int)src.at<Vec3b>(y,x)[1]<<" "<<(int)src.at<Vec3b>(y,x)[2]<<endl;
-    if(src.at<Vec3b>(y,x)[0]>100) //src.at<Vec3b>(y,x)[2]<50&&src.at<Vec3b>(y,x)[1]>50&&src.at<Vec3b>(y,x)[1]<200&&src.at<Vec3b>(y,x)[0]>100)
+    cout<<"RGB of Center ("<<y<<","<<x<<")="<<(int)dst.at<Vec3b>(y,x)[0]<<" "<<(int)dst.at<Vec3b>(y,x)[1]<<" "<<(int)dst.at<Vec3b>(y,x)[2]<<endl;
+    if((int)dst.at<Vec3b>(y,x)[0]>80&&(int)dst.at<Vec3b>(y,x)[0]<120) //src.at<Vec3b>(y,x)[2]<50&&src.at<Vec3b>(y,x)[1]>50&&src.at<Vec3b>(y,x)[1]<200&&src.at<Vec3b>(y,x)[0]>100)
     {
         Mat grey;
         cvtColor(src,grey,CV_BGR2GRAY);
@@ -379,8 +448,9 @@ int Color_judge(Mat &src,int area)
         }
         cout<<"sum: "<<sum<<endl;
         cout<<"portion: "<<sum/area<<endl;
-        if(sum/area>0.7&&sum/area<0.92)
+        if(sum/area>0.7&&sum/area<0.95)
             return 1;
+        else return 0;
     }
     else
         return 0;
@@ -433,12 +503,6 @@ void Sort_rect(vector<Point>& approx)
 }
 
 
-RMVideoCapture capture("/dev/video0", 3);
-int exp_time = 62;
-int gain = 30;
-int brightness_ = 10;
-int whiteness_ = 86;
-int saturation_ = 60;
 void on_expTracker(int,void *)
 {
     capture.setExposureTime(0, ::exp_time);//settings->exposure_time);
@@ -505,6 +569,7 @@ int main(int argc, char** argv)
     while (ros::ok())//&&(capture.read(frame)))
     {
 
+        squares.clear();
         double t = (double)getTickCount();
 
         capture >> frame;
@@ -512,8 +577,10 @@ int main(int argc, char** argv)
         if (frame.empty())
             continue;
 
+        int lostFlag = 0;
         Mat src=frame.clone();
         findSquares(src,frame, squares);
+        LocationMarkes(squares);
         drawSquares(frame, squares);
         /*****************************/
         /*******send the object position to ARM*********/
@@ -579,7 +646,7 @@ int main(int argc, char** argv)
         r.sleep();
 
     }
-    //capture.closeStream();
+    capture.closeStream();
 
     return 0;
 }

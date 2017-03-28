@@ -68,7 +68,7 @@
       <file leaf-file-name="CMakeLists.txt" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="348">
+            <state relative-caret-position="3798">
               <caret line="211" column="67" selection-start-line="211" selection-start-column="67" selection-end-line="211" selection-end-column="67" />
               <folding />
             </state>
@@ -78,8 +78,8 @@
       <file leaf-file-name="kylinbot_move.cpp" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/kylinbot_move.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-882">
-              <caret line="29" column="36" selection-start-line="29" selection-start-column="36" selection-end-line="29" selection-end-column="36" />
+            <state relative-caret-position="360">
+              <caret line="177" column="27" selection-start-line="177" selection-start-column="27" selection-end-line="177" selection-end-column="27" />
               <folding>
                 <element signature="e#39#59#0" expanded="true" />
                 <element signature="e#206#236#0" expanded="true" />
@@ -98,11 +98,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="main.cpp" pinned="false" current-in-tab="false">
+      <file leaf-file-name="main.cpp" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="146">
-              <caret line="40" column="0" selection-start-line="40" selection-start-column="0" selection-end-line="40" selection-end-column="0" />
+            <state relative-caret-position="290">
+              <caret line="55" column="19" selection-start-line="55" selection-start-column="19" selection-end-line="55" selection-end-column="19" />
               <folding>
                 <element signature="e#39#59#0" expanded="true" />
                 <element signature="e#178#215#0" expanded="true" />
@@ -111,12 +111,19 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="MarkerDetection.cpp" pinned="false" current-in-tab="true">
+      <file leaf-file-name="MarkerDetection.cpp" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/MarkerDetection.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="167">
-              <caret line="544" column="23" selection-start-line="544" selection-start-column="23" selection-end-line="544" selection-end-column="23" />
-              <folding />
+            <state relative-caret-position="918">
+              <caret line="649" column="0" selection-start-line="649" selection-start-column="0" selection-end-line="649" selection-end-column="0" />
+              <folding>
+                <element signature="e#39#59#0" expanded="true" />
+                <element signature="e#902#1080#0" expanded="true" />
+                <element signature="e#5014#5319#0" expanded="true" />
+                <element signature="e#6070#6399#0" expanded="true" />
+                <element signature="e#7302#7663#0" expanded="true" />
+                <element signature="e#15987#16025#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -153,12 +160,12 @@
         <option value="$PROJECT_DIR$/include/kylinbot_core/asp/inc/hcp.h" />
         <option value="$PROJECT_DIR$/src/asp/hcp.c" />
         <option value="$PROJECT_DIR$/include/kylinbot_core/main.h" />
-        <option value="$PROJECT_DIR$/src/MarkerDetection.cpp" />
         <option value="$PROJECT_DIR$/msg/kylin_msg_t.msg" />
-        <option value="$PROJECT_DIR$/src/main.cpp" />
         <option value="$PROJECT_DIR$/package.xml" />
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/src/kylinbot_move.cpp" />
+        <option value="$PROJECT_DIR$/src/main.cpp" />
+        <option value="$PROJECT_DIR$/src/MarkerDetection.cpp" />
       </list>
     </option>
   </component>
@@ -670,11 +677,12 @@
       <workItem from="1490601619831" duration="2757000" />
       <workItem from="1490688495033" duration="7727000" />
       <workItem from="1490704930484" duration="285000" />
+      <workItem from="1490708075922" duration="1369000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="20258000" />
+    <option name="totallyTimeSpent" value="21627000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="24" width="1301" height="744" extended-state="6" />
@@ -682,7 +690,7 @@
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2490392" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32833582" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32833582" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="CMake" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32833582" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
@@ -744,7 +752,14 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
+          <folding>
+            <element signature="e#39#59#0" expanded="true" />
+            <element signature="e#902#1080#0" expanded="true" />
+            <element signature="e#5014#5319#0" expanded="true" />
+            <element signature="e#6070#6399#0" expanded="true" />
+            <element signature="e#7302#7663#0" expanded="true" />
+            <element signature="e#15987#16025#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1064,14 +1079,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/package.xml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="702">
-          <caret line="39" column="54" selection-start-line="39" selection-start-column="54" selection-end-line="39" selection-end-column="54" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/CMakeLists.txt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="198">
@@ -1082,16 +1089,24 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="348">
+        <state relative-caret-position="3798">
           <caret line="211" column="67" selection-start-line="211" selection-start-column="67" selection-end-line="211" selection-end-column="67" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/package.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="702">
+          <caret line="39" column="54" selection-start-line="39" selection-start-column="54" selection-end-line="39" selection-end-column="54" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/kylinbot_move.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-882">
-          <caret line="29" column="36" selection-start-line="29" selection-start-column="36" selection-end-line="29" selection-end-column="36" />
+        <state relative-caret-position="360">
+          <caret line="177" column="27" selection-start-line="177" selection-start-column="27" selection-end-line="177" selection-end-column="27" />
           <folding>
             <element signature="e#39#59#0" expanded="true" />
             <element signature="e#206#236#0" expanded="true" />
@@ -1099,22 +1114,29 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main.cpp">
+    <entry file="file://$PROJECT_DIR$/src/MarkerDetection.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="146">
-          <caret line="40" column="0" selection-start-line="40" selection-start-column="0" selection-end-line="40" selection-end-column="0" />
+        <state relative-caret-position="918">
+          <caret line="649" column="0" selection-start-line="649" selection-start-column="0" selection-end-line="649" selection-end-column="0" />
           <folding>
             <element signature="e#39#59#0" expanded="true" />
-            <element signature="e#178#215#0" expanded="true" />
+            <element signature="e#902#1080#0" expanded="true" />
+            <element signature="e#5014#5319#0" expanded="true" />
+            <element signature="e#6070#6399#0" expanded="true" />
+            <element signature="e#7302#7663#0" expanded="true" />
+            <element signature="e#15987#16025#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/MarkerDetection.cpp">
+    <entry file="file://$PROJECT_DIR$/src/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="167">
-          <caret line="544" column="23" selection-start-line="544" selection-start-column="23" selection-end-line="544" selection-end-column="23" />
-          <folding />
+        <state relative-caret-position="290">
+          <caret line="55" column="19" selection-start-line="55" selection-start-column="19" selection-end-line="55" selection-end-column="19" />
+          <folding>
+            <element signature="e#39#59#0" expanded="true" />
+            <element signature="e#178#215#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
