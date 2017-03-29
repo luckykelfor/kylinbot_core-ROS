@@ -2,7 +2,8 @@
 // Created by kelfor on 3/27/17.
 //
 #include "ros/ros.h"
-#include "std_msgs/builtin_int16.h"
+#include "std_msgs/Int16.h"      //builtin_int16.h"
+#include <std_msgs/Bool.h>
 #include "main.h"
 #include "RMVideoCapture.hpp"
 #include<geometry_msgs/Twist.h>
@@ -31,6 +32,28 @@ int whiteness_ = 86;
 int saturation_ = 60;
 double ry,rz,rx;
 double tx,ty,tz;
+
+    
+int detection_mode=0;   //detect squares or only blue area. 0: square 1: blue area
+
+class MyPoint
+{
+public:
+    MyPoint(Point pnt)
+    {
+        x=pnt.x;
+        y=pnt.y;
+    };
+    int x;
+    int y;
+    bool operator<(const MyPoint&p)const
+    {
+        return x<p.x;
+    }
+};
+
+
+
 /*
 //for 640*480
 Mat cameraMatrix=(Mat_<double>(3,3)<<569.2681,0,288.1437,0,569.4591,263.6782,0,0,1);
@@ -57,24 +80,17 @@ Point3f world_pnt_tr(65,-85,0);
 Point3f world_pnt_br(65,85,0);
 Point3f world_pnt_bl(-65,85,0);
 
+//set the range of arrow size in ARROW_AREA_MIN TO ARROW_AREA_MAX
+const int ARROW_AREA_MIN=3000;//variable
+const int ARROW_AREA_MAX=700*500;
+Mat pro_after;
+int cx=343;   //To change to calibration parameter.
+int cy=320;   //the same with cameraMatrix.cx,cy
+int Color_detect(Mat frame, int &diff_x, int &diff_y);
+
 void Calcu_attitude(Point3f world_pnt_tl,Point3f world_pnt_tr,Point3f world_pnt_br,Point3f world_pnt_bl,Point2f pnt_tl_src,Point2f pnt_tr_src,Point2f pnt_br_src,Point2f pnt_bl_src);
 int Color_judge(Mat &src,int area);
 void Sort_rect(vector<Point>& approx);
-class MyPoint
-{
-public:
-    MyPoint(Point pnt)
-    {
-        x=pnt.x;
-        y=pnt.y;
-    };
-    int x;
-    int y;
-    bool operator<(const MyPoint&p)const
-    {
-        return x<p.x;
-    }
-};
 
 
 static double angle( Point pt1, Point pt2, Point pt0 )
@@ -413,11 +429,78 @@ void Calcu_attitude(Point3f world_pnt_tl,Point3f world_pnt_tr,Point3f world_pnt_
     cout<<"thetaz: "<<thetaz<<endl;
     cout<<"thetax: "<<thetax<<endl;
 }
+
+/************************************************************/
+/**********************detect the blue area******************/
+/**********************Input:image with blue arrow inside *****/
+/*********************Output: the center(x,y) ofthe blue area*********/
+int Color_detect(Mat frame, int &diff_x, int &diff_y)
+{
+    vector<Mat> HSVSplit;
+    //Returns a rectangular structuring element of the specified size and shape for morphological operations.
+    Mat element = getStructuringElement(MORPH_RECT, Size(5, 5));
+    vector<vector<Point> > contours;
+    Mat HSVImage;
+    Mat out;
+    Mat HGreen;
+    Mat SGreen;
+    Rect r;
+    Rect max_tmp;
+
+    cvtColor(frame, HSVImage, CV_BGR2HSV);
+    split(HSVImage,HSVSplit);
+    //Hgreen=HSVSplit[0]>lower&&HSVSplit[0]<up , mask, threshold can be fine tuned.
+    inRange(HSVSplit[0], Scalar(80), Scalar(120), HGreen);
+    threshold(HSVSplit[1], SGreen, 80, 255, THRESH_BINARY);    //S channal intensity
+    //bitwise conjunction
+    cv::bitwise_and(HGreen, SGreen, out);
+    morphologyEx(out, out, MORPH_OPEN, element);//open operator,remove isolated noise points.
+    morphologyEx(out, out, MORPH_CLOSE, element);//close operator,get connected domain.BMC
+    Mat solid;
+    solid=out.clone();
+    findContours(out,contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_NONE);
+    if( contours.size() == 0 )
+    {
+        cout<<"no contour..."<<endl;
+        return 0;
+    }
+    Mat result(out.size(),CV_8U,Scalar(0));
+    drawContours(result,contours,-1,Scalar(255),2);
+    max_tmp=boundingRect(Mat(contours[0]));
+    for(int i=1; i<contours.size(); i++)    
+    {
+        r = boundingRect(Mat(contours[i]));
+        max_tmp=(r.area()>max_tmp.area())?r:max_tmp;
+    }
+    if(max_tmp.area()<ARROW_AREA_MIN||max_tmp.area()>ARROW_AREA_MAX)
+        return 0;
+    Mat pro;
+    solid(max_tmp).copyTo(pro);
+    pro_after=pro.clone();
+    rectangle(result, max_tmp, Scalar(255), 2);
+    cout<<"area "<<max_tmp.area()<<endl;
+    
+    imshow("result",result);
+    if('q'==(char)waitKey(7)) exit(0);
+    
+    //caculate the center of green area
+    Moments mt;
+    mt=moments(pro_after,true);
+    Point center;
+	
+    center.x=mt.m10/mt.m00+max_tmp.tl().x;
+    center.y=mt.m01/mt.m00+max_tmp.tl().y;
+    diff_x=center.x-cx;
+    diff_y=center.y-cy;
+    cout<<"diff x: "<<diff_x<<endl;
+    cout<<"diff y: "<<diff_y<<endl;
+    return 1;
+}
+
 int Color_judge(Mat &src,int area)
 {
     //judge from the center point: BGR
     Mat dst;
-    cout<<"color judges 1 src.chan="<<src.channels()<<endl;
     cvtColor( src, dst, CV_BGR2HSV);
     //src = dst;
 
@@ -497,6 +580,13 @@ void Sort_rect(vector<Point>& approx)
 }
 
 
+
+void detectionModeCallback(const std_msgs::Int16 & mode)
+{
+	detection_mode = mode.data;
+}
+
+
 void on_expTracker(int,void *)
 {
     capture.setExposureTime(0, ::exp_time);//settings->exposure_time);
@@ -527,6 +617,8 @@ int main(int argc, char** argv)
     ros::Rate r(100);
 
     ros::Publisher pub = n.advertise<geometry_msgs::Twist>("kylinbot/cmd_vel",100);//.h>
+	ros::Publisher pub_lostFlag = n.advertise<std_msgs::Bool>("kylinbot/lostCubeSquare",10);//Publish the flag for losing the square or not
+	ros::Subscriber sub_detectionMode = n.subscribe("kylinbot/detectioMode",100,detectionModeCallback);
 
 #ifdef _SHOW_PHOTO
     namedWindow( wndname, 1 );
@@ -563,7 +655,7 @@ int main(int argc, char** argv)
     while (ros::ok())//&&(capture.read(frame)))
     {
 
-        squares.clear();
+        squares.clear(); 
         double t = (double)getTickCount();
 
         capture >> frame;
@@ -571,52 +663,64 @@ int main(int argc, char** argv)
         if (frame.empty())
             continue;
 
-        int lostFlag = 0;
+        int lostCount = 0;
         Mat src=frame.clone();
-        findSquares(src,frame, squares);
-        LocationMarkes(squares);
-        drawSquares(frame, squares);
-        /*****************************/
-        /*******send the object position to ARM*********/
-        /***********************************************/
-        //imshow(wndname, frame);
-        int c = waitKey(1);
-
-        t = ((double)getTickCount() - t)/getTickFrequency();
-        cout<<"time: "<<t<<" second"<<endl;
-
-        if((char)c == 'q')
-            break;
-
-        if(squares.size() > 0)
-        {
-            lostFlag = 0;
-        }
-
-
-        if (squares.size() == 0)
-        {
-            lostFlag++;
-            if(lostFlag >= 3)
-            {
-                lostFlag = 0;
-                tx = 0;
-                ty = 0;
-                tz = 0;
-                rx = 0;
-                ry = 0;
-                rz = 0;
-            }
-
-        }
-//TODO: publish cmd_vel topic messages
-//
-        cmd_vel.linear.x = tx;
-        cmd_vel.linear.y = ty;
-        cmd_vel.linear.z = tz;
-		cmd_vel.angular.x = rx;
-        cmd_vel.angular.y = ry;
-        cmd_vel.angular.z = rz;
+		if(detection_mode==0)  //detect square
+		{
+			findSquares(src,frame, squares);
+			LocationMarkes(squares);
+			drawSquares(frame, squares); 
+			/*****************************/
+			/*******send the object position to ARM*********/
+			/***********************************************/
+			//imshow(wndname, frame);
+			int c = waitKey(1);
+			
+			t = ((double)getTickCount() - t)/getTickFrequency();
+			cout<<"time: "<<t<<" second"<<endl;
+			
+			if((char)c == 'q')
+				break;
+			
+			if(squares.size() > 0)
+			{
+				lostCount = 0;
+			}
+			
+			
+			if (squares.size() == 0)
+			{
+				lostCount++;
+				if(lostCount >= 3)
+				{
+					lostCount = 0;
+					tx = 0;
+					ty = 0;
+					tz = 0;
+					rx = 0;
+					ry = 0;
+					rz = 0;
+				}
+				
+			}
+			
+			//TODO: publish cmd_vel topic messages
+			//
+			cmd_vel.linear.x = tx;
+			cmd_vel.linear.y = ty;
+			cmd_vel.linear.z = tz;
+			cmd_vel.angular.x = rx;
+			cmd_vel.angular.y = ry;
+			cmd_vel.angular.z = rz;
+		}
+		else    //detect blue area
+		{
+			int dif_x=0, dif_y=0;
+			Color_detect(src,dif_x, dif_y);
+			cmd_vel.linear.x = 10*dif_x;
+			cmd_vel.linear.y = 10*dif_y;
+			cmd_vel.linear.z = 100; 
+		}
 
 
         pub.publish(cmd_vel);
