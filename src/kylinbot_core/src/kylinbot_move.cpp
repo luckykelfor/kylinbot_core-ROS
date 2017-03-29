@@ -146,7 +146,7 @@ Here we'll create a TransformStamped message that we will send out over tf. We w
 
     odom_trans.transform.translation.x = kylinMsg.cp.x/1000.0; //Make sure the direction is correct
     odom_trans.transform.translation.y = kylinMsg.cp.y/1000.0;
-    odom_trans.transform.translation.z = 0.0;
+    odom_trans.transform.transodom_publation.z = 0.0;
     odom_trans.transform.rotation = odom_quat;
     //send the transform
     odom_broadcaster.sendTransform(odom_trans);
