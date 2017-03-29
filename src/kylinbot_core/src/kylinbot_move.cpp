@@ -124,7 +124,7 @@ void PullMsg(ros::Publisher & odom_pub)
     }
 
 
-    tf::TransformBroadcaster odom_broadcaster;
+    tf::TransformBroadcaster odom_broadcaster,kylinbot_move_broadcaster;
 
     current_time = ros::Time::now();
 
@@ -136,20 +136,32 @@ void PullMsg(ros::Publisher & odom_pub)
     geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
 
     //first, we'll publish the transform over tf
-    geometry_msgs::TransformStamped odom_trans;
+    geometry_msgs::TransformStamped odom_trans, map_to_odom_trans;
     odom_trans.header.stamp = current_time;
     odom_trans.header.frame_id = "odom";
     odom_trans.child_frame_id = "base_link";
+
+
     /*
 Here we'll create a TransformStamped message that we will send out over tf. We want to publish the transform from the "odom" frame to the "base_link" frame at current_time. Therefore, we'll set the header of the message and the child_frame_id accordingly, making sure to use "odom" as the parent coordinate frame and "base_link" as the child coordinate frame.
 */
+
 
     odom_trans.transform.translation.x = kylinMsg.cp.x/1000.0; //Make sure the direction is correct
     odom_trans.transform.translation.y = kylinMsg.cp.y/1000.0;
     odom_trans.transform.translation.z = 0.0;
     odom_trans.transform.rotation = odom_quat;
+
     //send the transform
     odom_broadcaster.sendTransform(odom_trans);
+
+
+//Assume map and odom need no tf.
+    kylinbot_move_broadcaster.sendTransform(
+            tf::StampedTransform (
+
+            tf::Transform ( tf::Quaternion ( 0, 0, 0 ), tf::Vector3 ( 0.0, 0.0, 0.0 ) ),
+            current_time,"map", "odom" ) );
 /*
  在此处我们发布了当前最新base_link坐标系与odem坐标系之间的变换。
 */
