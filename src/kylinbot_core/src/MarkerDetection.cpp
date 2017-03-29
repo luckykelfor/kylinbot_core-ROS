@@ -7,12 +7,8 @@
 #include "RMVideoCapture.hpp"
 #include<geometry_msgs/Twist.h>
 
-#define COM_PORT 1 //"COM7"
-#define BUF_LEN 256
-#define TIMEOUT 30
-#define FRAME_N 20000
 
-#define _SHOW_PHOTO
+//#define _SHOW_PHOTO
 //#define _SHOW_OUTPUT
 //#define Camera_One
 
@@ -79,8 +75,6 @@ public:
         return x<p.x;
     }
 };
-
-
 
 
 static double angle( Point pt1, Point pt2, Point pt0 )
@@ -646,7 +640,7 @@ int main(int argc, char** argv)
         r.sleep();
 
     }
-    capture.closeStream();
+    //capture.closeStream();
 
     return 0;
 }

@@ -172,7 +172,7 @@ Here we fill in the transform message from our odometry data, and then send the 
     odom.child_frame_id = "base_link";
     odom.twist.twist.linear.x = kylinMsg.cv.x/1000.0;
     odom.twist.twist.linear.y = kylinMsg.cv.y/1000.0;
-    odom.twist.twist.angular.z = kylinMsg.cv.z;
+    odom.twist.twist.angular.z = kylinMsg.cv.z/1000.0;
 
     //publish the message
     odom_pub.publish(odom);
