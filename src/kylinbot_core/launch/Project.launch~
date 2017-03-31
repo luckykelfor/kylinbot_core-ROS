@@ -20,5 +20,5 @@
       <rosparam file="$(find kylinbot_core)/config-files/local_costmap_params.yaml" command="load" />
       <rosparam file="$(find kylinbot_core)/config-files/base_local_planner_params.yaml" command="load" />
     </node>
-   <node name="map_server" pkg="map_server" type="map_server" args="$(find kylinbot_core)/map/mymap.yaml"/> 
+   <node name="map_server" pkg="map_server" type="map_server" args="$(find kylinbot_core)/maps/blank_map.yaml"/> 
 </launch>

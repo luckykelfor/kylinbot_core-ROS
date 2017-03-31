@@ -40,13 +40,7 @@ uint8_t exit_flag = 0;
 FIFO_t rx_fifo;
 uint8_t rx_buf[2][BUF_LEN];
 
-VirtualDBUS_t vdbus;
-VirtualCBUS_t vcbus;
-CalibMsg_t calibMsg;
-MotorMsg_t motorMsg;
 ZGyroMsg_t zgyroMsg;
-OdomeMsg_t odomeMsg;
-GraspMsg_t graspMsg;
 KylinMsg_t kylinMsg;
 
 
@@ -58,9 +52,9 @@ void init()
 static void Dnl_ProcKylinMsg(const KylinMsg_t* kylinMsg)
 {
     //printf("*************************************KYLIN********************************************\n");
-    printf("fs=%x,px=%d,py=%d,pz=%d,pe=%d,pc=%d,vx=%d,vy=%d,vz=%d,ve=%d,vc=%d\n", kylinMsg->fs,
-           kylinMsg->cp.x, kylinMsg->cp.y, kylinMsg->cp.z, kylinMsg->gp.e, kylinMsg->gp.c,
-           kylinMsg->cv.x, kylinMsg->cv.y, kylinMsg->cv.z, kylinMsg->gv.e, kylinMsg->gv.c);
+    printf("fs=%x,px=%d,py=%d,pz=%d,pe=%d,pc=%d,vx=%d,vy=%d,vz=%d,ve=%d,vc=%d\n", kylinMsg->cbus.fs,
+           kylinMsg->cbus.cp.x, kylinMsg->cbus.cp.y, kylinMsg->cbus.cp.z, kylinMsg->cbus.gp.e, kylinMsg->cbus.gp.c,
+           kylinMsg->cbus.cv.x, kylinMsg->cbus.cv.y, kylinMsg->cbus.cv.z, kylinMsg->cbus.gv.e, kylinMsg->cbus.gv.c);
 }
 
 void Tri_Init(Tri_t* tri, uint32_t scl)
@@ -85,32 +79,8 @@ void PullMsg(ros::Publisher & odom_pub)
     // Push stream into fifo
     FIFO_Push(&rx_fifo, rx_buf[1], len);
     // Check if any message received
-    if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_vrc, &vdbus.rcp)) {
-        //VRC_Proc(&vdbus.rcp);
-    }
-    else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_vhc, &vdbus.hcp)) {
-        //VHC_Proc(&vdbus.hcp);
-    }
-    else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_vdbus, &vdbus)) {
-        //VDBUS_Proc(&vdbus);
-    }
-    else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_vcbus, &vcbus)) {
-        //VCBUS_Proc(&vcbus);
-    }
-    else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_calib, &calibMsg)) {
-        //Dnl_ProcCalibMsg(&calibMsg);
-    }
-    else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_motor, &motorMsg)) {
-        //Dnl_ProcMotorMsg(&motorMsg);
-    }
-    else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_zgyro, &zgyroMsg)) {
+    if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_zgyro, &zgyroMsg)) {
         //Dnl_ProcZGyroMsg(&zgyroMsg);
-    }
-    else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_odome, &odomeMsg)) {
-        //Dnl_ProcOdomeMsg(&odomeMsg);
-    }
-    else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_grasp, &graspMsg)) {
-        //Dnl_ProcGraspMsg(&graspMsg);
     }
     else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_kylin, &kylinMsg)) {
         //printf("Before pop -> size: %d, used: %d, free: %d\n", FIFO_GetSize(&rx_fifo), FIFO_GetUsed(&rx_fifo), FIFO_GetFree(&rx_fifo));
@@ -130,7 +100,7 @@ void PullMsg(ros::Publisher & odom_pub)
 
 
 
-    double theta = kylinMsg.cp.z/1000.0;
+    double theta = kylinMsg.cbus.cp.z/1000.0;
     //since all odometry is 6DOF we'll need a quaternion created from yaw
     /* 将里程计的偏航角转换成四元数，四元数效率高，这样使用二维和三维的功能包是一样的。*/
     geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
@@ -147,8 +117,8 @@ Here we'll create a TransformStamped message that we will send out over tf. We w
 */
 
 
-    odom_trans.transform.translation.x = kylinMsg.cp.x/1000.0; //Make sure the direction is correct
-    odom_trans.transform.translation.y = kylinMsg.cp.y/1000.0;
+    odom_trans.transform.translation.x = kylinMsg.cbus.cp.x/1000.0; //Make sure the direction is correct
+    odom_trans.transform.translation.y = kylinMsg.cbus.cp.y/1000.0;
     odom_trans.transform.translation.z = 0.0;
     odom_trans.transform.rotation = odom_quat;
 
@@ -172,8 +142,8 @@ Here we'll create a TransformStamped message that we will send out over tf. We w
     odom.header.frame_id = "odom";
 
     //set the position
-    odom.pose.pose.position.x = kylinMsg.cp.x/1000.0;
-    odom.pose.pose.position.y = kylinMsg.cp.y/1000.0;
+    odom.pose.pose.position.x = kylinMsg.cbus.cp.x/1000.0;
+    odom.pose.pose.position.y = kylinMsg.cbus.cp.y/1000.0;
     odom.pose.pose.position.z = 0.0;
     odom.pose.pose.orientation = odom_quat;
 
@@ -182,9 +152,9 @@ Here we fill in the transform message from our odometry data, and then send the 
 */
     //set the velocity
     odom.child_frame_id = "base_link";
-    odom.twist.twist.linear.x = kylinMsg.cv.x/1000.0;
-    odom.twist.twist.linear.y = kylinMsg.cv.y/1000.0;
-    odom.twist.twist.angular.z = kylinMsg.cv.z/1000.0;
+    odom.twist.twist.linear.x = kylinMsg.cbus.cv.x/1000.0;
+    odom.twist.twist.linear.y = kylinMsg.cbus.cv.y/1000.0;
+    odom.twist.twist.angular.z = kylinMsg.cbus.cv.z/1000.0;
 
     //publish the message
     odom_pub.publish(odom);
@@ -213,12 +183,12 @@ void controlCmd_velFromeNavigationCallback(const geometry_msgs::Twist& cmd_vel)
 {
     if(1 == cmd_vel_source)// Only valid when selected.
     {
-        txKylinMsg.cp.x = 1000;
-        txKylinMsg.cv.x = cmd_vel.linear.x;
-        txKylinMsg.cp.y = 1000;
-        txKylinMsg.cv.y = cmd_vel.linear.z;
-        txKylinMsg.cp.z = 1000;
-        txKylinMsg.cv.z = cmd_vel.angular.y;
+        txKylinMsg.cbus.cp.x = 1000;
+        txKylinMsg.cbus.cv.x = cmd_vel.linear.x;
+        txKylinMsg.cbus.cp.y = 1000;
+        txKylinMsg.cbus.cv.y = cmd_vel.linear.z;
+        txKylinMsg.cbus.cp.z = 1000;
+        txKylinMsg.cbus.cv.z = cmd_vel.angular.y;
     }
 
 
@@ -236,14 +206,14 @@ void controlCmd_velFromImageProcessingCallback(const geometry_msgs::Twist& cmd_v
 //    v_r = ...
     if(0 == cmd_vel_source)  // Only valid when selected.
     {
-        txKylinMsg.cp.x = cmd_vel.linear.x;
-        txKylinMsg.cv.x = 1000;
-        txKylinMsg.cp.y = cmd_vel.linear.z;
-        txKylinMsg.cv.y = 1000;
-        txKylinMsg.cp.z = cmd_vel.angular.y;
-        txKylinMsg.cv.z = 1000;
-        txKylinMsg.gp.e = cmd_vel.linear.y;
-        txKylinMsg.gv.e = 1000; //cmd_vel.angular.y;
+        txKylinMsg.cbus.cp.x = cmd_vel.linear.x;
+        txKylinMsg.cbus.cv.x = 1000;
+        txKylinMsg.cbus.cp.y = cmd_vel.linear.z;
+        txKylinMsg.cbus.cv.y = 1000;
+        txKylinMsg.cbus.cp.z = cmd_vel.angular.y;
+        txKylinMsg.cbus.cv.z = 1000;
+        txKylinMsg.cbus.gp.e = cmd_vel.linear.y;
+        txKylinMsg.cbus.gv.e = 1000; //cmd_vel.angular.y;
     }
 
 
