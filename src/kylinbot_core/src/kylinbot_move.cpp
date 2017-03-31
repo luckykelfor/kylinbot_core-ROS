@@ -16,7 +16,7 @@
 
 
 ros::Time current_time, last_time;
-int cmd_vel_source = 0;// 0: From image processing 1: From Navigation node
+int cmd_vel_source = 1;// 0: From image processing 1: From Navigation node
 typedef struct
 {
     uint8_t dir;
@@ -251,6 +251,22 @@ void controlCmd_velFromImageProcessingCallback(const geometry_msgs::Twist& cmd_v
 //    wheel_left.set_speed(v_l)
 //    wheel_right.set_speed(v_r)
 }
+
+
+class kylinbot_action
+{
+public:
+    kylinbot_action(ros::NodeHandle &);
+    bool isRunning();
+    bool isPaused();
+    bool isFinished();
+private:
+    bool isBusy;
+    ros::Subscriber cmdSub;
+    ros::Publisher  actionState_pub;
+
+
+};
 
 
 int main(int argc, char ** argv)

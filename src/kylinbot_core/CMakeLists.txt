@@ -8,9 +8,12 @@ project(kylinbot_core)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+        actionlib
+        move_base_msgs
   roscpp
   rospy
   std_msgs
+
         message_generation
 )
 
@@ -201,16 +204,20 @@ set(CMAKE_BUILD_TYPE Release)
 add_definitions("-std=c++11")
 FILE(GLOB sourcefiles "src/asp/*.c" "src/uart/*.cpp")
 include_directories(/usr/loca/include include/kylinbot_core include/kylinbot_core/asp/inc include/kylinbot_core/uart ${catkin_INCLUDE_DIRS})
-add_executable(main src/main.cpp src/serial.cpp src/mythread.cpp src/kylinbot.cpp ${sourcefiles} )
-link_directories(/usr/local/lib /opt/ros/indigo/lib)
-target_link_libraries(main pthread opencv_core opencv_highgui opencv_calib3d opencv_imgproc ${catkin_LIBRARIES})
 
+link_directories(/usr/local/lib /opt/ros/indigo/lib)
+
+
+add_executable(main_control src/main_control.cpp src/serial.cpp src/mythread.cpp src/kylinbot.cpp ${sourcefiles} )
+
+target_link_libraries(main_control pthread   ${catkin_LIBRARIES})
+add_dependencies(main_control move_base_msgs)
 
 #include_directories(/usr/loca/include include/kylinbot_core include/kylinbot_core/asp/inc include/kylinbot_core/uart ${catkin_INCLUDE_DIRS})
 
 add_executable(kylinbot_move ${sourcefiles} src/kylinbot_move.cpp)
 target_link_libraries(kylinbot_move  ${catkin_LIBRARIES} pthread tf)
-add_dependencies(kylinbot_move tf kylinbot_core_generate_messages_cpp)
+add_dependencies(kylinbot_move  kylinbot_core_generate_messages_cpp)
 
 
 add_executable(MarkerDetection src/MarkerDetection.cpp )
