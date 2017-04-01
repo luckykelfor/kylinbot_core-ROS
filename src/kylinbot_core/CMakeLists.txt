@@ -201,7 +201,7 @@ catkin_package(
 #
 #
 set(CMAKE_BUILD_TYPE Release)
-add_definitions("-std=c++11")
+add_definitions("-O0")
 FILE(GLOB sourcefiles "src/asp/*.c" "src/uart/*.cpp")
 include_directories(/usr/loca/include include/kylinbot_core include/kylinbot_core/asp/inc include/kylinbot_core/uart ${catkin_INCLUDE_DIRS})
 

@@ -112,9 +112,9 @@ static void findSquares( Mat src,const Mat& image, vector<vector<Point> >& squar
 
     int counts=0,counts_2=0,counts_3=0;
     vector<Point> cand_1,cand_2,cand_3;
-    vector<vector<Point>> rect_2;
-    vector<vector<Point>> rect_3;
-    vector<vector<Point>> out;
+    vector<vector<Point> > rect_2;
+    vector<vector<Point> > rect_3;
+    vector<vector<Point> > out;
     //vector<Mat> channels;
     /*
 	cvtColor( timg, Src_HSV, CV_BGR2HSV);

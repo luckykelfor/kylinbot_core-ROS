@@ -51,11 +51,11 @@ uint32_t Msg_Push(FIFO_t* fifo, void* buf, const void* head, const void* body)
 	 
 	const MsgHead_t* phead = (MsgHead_t*)head;
 	uint32_t len = phead->attr.length + MSG_LEN_EXT;
-	printf("len:2.1.1 :%d\n",len);
+	//printf("len:2.1.1 :%d\n",len);
 	if (FIFO_GetFree(fifo) < len) 
 	{
 		 
-		printf("len:2.1.2 :%d\n",FIFO_GetFree(fifo));
+		//printf("len:2.1.2 :%d\n",FIFO_GetFree(fifo));
 		return 0;
 	} 
 	else 
@@ -64,17 +64,17 @@ uint32_t Msg_Push(FIFO_t* fifo, void* buf, const void* head, const void* body)
 		len = 0;
 		memcpy(buf, head, sizeof(MsgHead_t));
 		len += sizeof(MsgHead_t);
-		printf("len:2.1.3 :%d\n",len);
+		//printf("len:2.1.3 :%d\n",len);
 		memcpy((uint8_t*)buf + len, body, phead->attr.length);
 		len += phead->attr.length;
-		printf("len:2.1.4 :%d\n",len);
+		//printf("len:2.1.4 :%d\n",len);
 		CRC16Append(buf, len + 2, phead->attr.token);
 		len += 2;
-		printf("len:2.1.5 :%d\n",len);
+		//printf("len:2.1.5 :%d\n",len);
 		
 		FIFO_Push(fifo, buf, len);
 		
-		printf("ok2.1.6");
+		//printf("ok2.1.6");
 		return len;
 	}
 }

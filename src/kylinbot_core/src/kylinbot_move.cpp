@@ -13,11 +13,11 @@
 #include <iostream>
 #define MAF_BUF_LEN 200
 
-#define BUF_LEN 255
+#define BUF_LEN 256
 using namespace std;
 
 ros::Time current_time, last_time;
-int cmd_vel_source = 1;// 0: From image processing 1: From Navigation node
+int cmd_vel_source = 0;// 0: From image processing 1: From Navigation node
 typedef struct
 {
     uint8_t dir;
@@ -44,15 +44,16 @@ uint8_t rx_buf[2][BUF_LEN];
 ZGyroMsg_t zgyroMsg;
 KylinMsg_t kylinMsg;
 
-
+PosCalibMsg_t posCalibMsg;
+Sr04sMsg_t sr04sMsg;
 void initFIFO()
 {
-		printf("rx add:%d, rx size: %d\n",rx_fifo.m,rx_fifo.s);
+	//	printf("rx add:%d, rx size: %d\n",rx_fifo.m,rx_fifo.s);
     FIFO_Init(&rx_fifo, rx_buf[0], BUF_LEN);
-		printf("rx add:%d, rx size: %d\n",rx_fifo.m,rx_fifo.s);
-	printf("tx add:%d, tx size: %d\n",tx_fifo.m,tx_fifo.s);
+	//	printf("rx add:%d, rx size: %d\n",rx_fifo.m,rx_fifo.s);
+	//printf("tx add:%d, tx size: %d\n",tx_fifo.m,tx_fifo.s);
     FIFO_Init(&tx_fifo, tx_buf[0], BUF_LEN);
-	printf("tx add:%d, tx size: %d\n",tx_fifo.m,tx_fifo.s);
+	//printf("tx add:%d, tx size: %d\n",tx_fifo.m,tx_fifo.s);
 }
 
 static void Dnl_ProcKylinMsg(const KylinMsg_t* kylinMsg)
@@ -72,53 +73,33 @@ void Tri_Init(Tri_t* tri, uint32_t scl)
 void PullMsg(ros::Publisher & odom_pub)
 //void PullMsg()
 {
-	printf("INPULL %d",tx_fifo.s);
-    // Get fifo free space
-    //TODO: publish Odometry message.
-	cout<<"pull 2.1"<<endl;
-	printf("FIFO_GetFree tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
-    int len = FIFO_GetFree(&rx_fifo);
-    printf("FIFO_GetFree tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
+	// Get fifo free space
+	int len = FIFO_GetFree(&rx_fifo);
 	// If fifo free space insufficient, pop one element out
-    if (len < 1) {
-        uint8_t b;
-		printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
-        len = FIFO_Pop(&rx_fifo, &b, 1);
-		printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
-    }
-    cout<<"pull 2.2"<<endl;
-    // Read input stream according to the fifo free space left
-	printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
-	cout<<"len"<<len<<endl;
-    len = read_serial(rx_buf[1], len, 222);
-	printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
-	cout<<"pull 2.3"<<endl;
-    if (len > 0) {
-		
-		FIFO_Push(&rx_fifo, rx_buf[1], len);
-
+	if (!len) {
+		uint8_t b;
+		len = FIFO_Pop(&rx_fifo, &b, 1);
 	}
-	printf("Push in PULL tx: add %d size: %d",tx_fifo.m, (int)tx_fifo.s);
-    //printf("PULL LEN= %d\n", len);
-    // Push stream into fifo
-    cout<<"pull 2.4"<<endl;
-    // Check if any message received
-    if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_zgyro, &zgyroMsg)) {
-        //Dnl_ProcZGyroMsg(&zgyroMsg);
-    }
-    else if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_kylin, &kylinMsg)) {
-        //printf("Before pop -> size: %d, used: %d, free: %d\n", FIFO_GetSize(&rx_fifo), FIFO_GetUsed(&rx_fifo), FIFO_GetFree(&rx_fifo));
-        //printf("Before pop: %d\n", FIFO_GetFree(&rx_fifo));
-        Dnl_ProcKylinMsg(&kylinMsg);
-        //printf("After pop: %d\n", FIFO_GetFree(&rx_fifo));
-    }
-    else {
-        //uint8_t b;
-        //len = FIFO_Pop(&rx_fifo, &b, 1);
-    }
-    printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
-    cout<<"pull 2.5"<<endl;
-	printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
+	// Read input stream according to the fifo free space left
+	len = read_serial(rx_buf[1], len, 255);
+	// Push stream into fifo
+	FIFO_Push(&rx_fifo, rx_buf[1], len);
+	// Check if any message received
+	if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_kylin, &kylinMsg)) {
+		Dnl_ProcKylinMsg(&kylinMsg);
+	}
+	if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_sr04s, &sr04sMsg)) {
+		//Dnl_ProcSr04sMsg(&sr04sMsg);
+	}
+	if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_zgyro, &zgyroMsg)) {
+		//Dnl_ProcZGyroMsg(&zgyroMsg);
+	}
+	if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_pos_calib, &posCalibMsg)) {
+		//Dnl_ProcPosCalibMsg(&posCalibMsg);
+	}
+   // printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
+   // cout<<"pull 2.5"<<endl;
+	//printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
     tf::TransformBroadcaster odom_broadcaster,kylinbot_move_broadcaster;
 
     current_time = ros::Time::now();
@@ -188,25 +169,14 @@ Here we fill in the transform message from our odometry data, and then send the 
 我们发布nav_msgs/Odometry消息(odom)，从而导航包能从中获取机器人的速度。
 我们设置child_frame_id为"base_link"坐标系，因为我们计算的速度才是base_link 坐标系下的速度。
 */
-printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
+    //printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
 }
 
 void PushMsg()
 {
-	//txKylinMsg.fs = 1;
-	//txKylinMsg.cv.x = 2000;
-	cout<<"ok2.1\n"<<endl;
-		printf("%d",tx_fifo.s);
-	if (FIFO_GetFree(&tx_fifo) >= msg_head_kylin.attr.length + MSG_LEN_EXT) {
-		cout<<"ok2.12222222222222222222222\n"<<endl;
-		uint32_t len = Msg_Push(&tx_fifo, tx_buf[1], & msg_head_kylin, &txKylinMsg);
-		cout<<"ok2.2\n"<<endl;
-		FIFO_Pop(&tx_fifo, tx_buf[1], len);
-		cout<<"ok2.3\n"<<endl;
-		//write_serial(tx_buf[1], len, 50);
-		cout<<"ok2.4\n"<<endl;
-	}
-	
+	uint32_t len = Msg_Push(&tx_fifo, tx_buf[1], & msg_head_kylin, &txKylinMsg);
+	FIFO_Pop(&tx_fifo, tx_buf[1], len);
+	write_serial(tx_buf[1], len, 255);
 }
 
 void cmd_velSourceCallback(const std_msgs::Int32 & source )
@@ -218,14 +188,18 @@ void controlCmd_velFromeNavigationCallback(const geometry_msgs::Twist& cmd_vel)
 {
     if(1 == cmd_vel_source)// Only valid when selected.
     {
-        txKylinMsg.cbus.cp.x = 1000;
+        txKylinMsg.cbus.cp.x = 2000;
         txKylinMsg.cbus.cv.x = cmd_vel.linear.x;
-        txKylinMsg.cbus.cp.y = 1000;
+        txKylinMsg.cbus.cp.y = 2000;
         txKylinMsg.cbus.cv.y = cmd_vel.linear.z;
-        txKylinMsg.cbus.cp.z = 1000;
+        txKylinMsg.cbus.cp.z = 2000;
         txKylinMsg.cbus.cv.z = cmd_vel.angular.y;
+		
     }
 
+    	    
+		
+	
 
 }
 
@@ -249,9 +223,12 @@ void controlCmd_velFromImageProcessingCallback(const geometry_msgs::Twist& cmd_v
         txKylinMsg.cbus.cv.z = 1000;
         txKylinMsg.cbus.gp.e = cmd_vel.linear.y;
         txKylinMsg.cbus.gv.e = 1000; //cmd_vel.angular.y;
+		 
     }
 
 
+//  
+    
     // Then set your wheel speeds (using wheel_left and wheel_right as examples)
 //    wheel_left.set_speed(v_l)
 //    wheel_right.set_speed(v_r)
@@ -288,10 +265,12 @@ int main(int argc, char ** argv)
     //Publish Odom
 
     ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>("kylinbo/odom", 100);
-    ros::Rate r(100);
+    ros::Rate r(50);
 
 
+	uint8_t * savePtr = NULL;
     initFIFO();
+	savePtr = tx_fifo.m;
     uint32_t cnt = 0;
     Rmp_Config(&rmp, 50000);
     Maf_Init(&maf, maf_buf, MAF_BUF_LEN);
@@ -311,18 +290,8 @@ int main(int argc, char ** argv)
 		//usleep(10000);
 		//cout<<"ok1"<<endl;
         ros::spinOnce();
-		
-		printf("add: %d\n", tx_fifo.m);
-		printf("size: %d\n", tx_fifo.s);
-		//cout<<"ok2"<<endl;
-	//		printf("r:add: %x\n", rx_fifo.m);
-	//	printf("r:size: %d\n", rx_fifo.s);	
-	//	//PushMsg();
-		//cout<<"ok3"<<endl;
-		//usleep(10000);
-       
 		PullMsg(odom_pub);
-		// PushMsg(); 
+        PushMsg(); 
 		//cout<<"ok4"<<endl;
         r.sleep();
     }
