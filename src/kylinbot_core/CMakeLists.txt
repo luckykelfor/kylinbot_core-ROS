@@ -208,7 +208,7 @@ include_directories(/usr/loca/include include/kylinbot_core include/kylinbot_cor
 link_directories(/usr/local/lib /opt/ros/indigo/lib)
 
 
-add_executable(main_control src/main_control.cpp src/serial.cpp src/mythread.cpp  ${sourcefiles} )
+add_executable(main_control src/main_control.cpp ${sourcefiles} )
 
 target_link_libraries(main_control pthread   ${catkin_LIBRARIES})
 add_dependencies(main_control move_base_msgs)

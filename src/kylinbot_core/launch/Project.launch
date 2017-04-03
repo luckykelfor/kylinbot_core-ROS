@@ -1,15 +1,10 @@
 <launch>
-       <node pkg="kylinbot_core" type="kylinbot_move" name="kylinbot_move" output="screen">
-		<!-- Define our params
-		<param name="groundstation_enable" type="int" value="1"/-->
-	</node>
-	<!--<node pkg="kylinbot_core" type="MarkerDetection" name="RMDetector" output="screen"/ -->
-    
-	<node pkg="kylinbot_core" type="main_control" name="main_control"  output="screen">
+   
+	<!--<node pkg="kylinbot_core" type="main_control" name="main_control"  output="screen">
 
-	</node>
+	</node>-->
 
- <!--    <node pkg="tf" type="static_transform_publisher" name="odom_map_broadcaster" args="0 0 0 0 0 0 /map /odom 100" />  -->
+ <node pkg="tf" type="static_transform_publisher" name="odom_map_broadcaster" args="0 0 0 0 0 0 /map /odom 100" />
  
     <include file="$(find amcl)/examples/amcl_omni.launch" />
  
@@ -20,5 +15,6 @@
       <rosparam file="$(find kylinbot_core)/config-files/local_costmap_params.yaml" command="load" />
       <rosparam file="$(find kylinbot_core)/config-files/base_local_planner_params.yaml" command="load" />
     </node>
-   <node name="map_server" pkg="map_server" type="map_server" args="$(find kylinbot_core)/map/mymap.yaml"/> 
+ 
+     <node name="map_server" pkg="map_server" type="map_server" args="$(find kylinbot_core)/map/mymap.yaml"/>  
 </launch>
