@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-
         message_generation
 )
 
@@ -53,7 +52,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
  add_message_files(
    FILES
-   kylin_msg_t.msg
+   kylin_vrc.msg
  )
 
 ## Generate services in the 'srv' folder

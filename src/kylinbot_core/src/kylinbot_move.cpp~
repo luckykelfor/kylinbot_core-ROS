@@ -12,7 +12,7 @@
 #include "serial.h"
 #include <iostream>
 #define MAF_BUF_LEN 200
-#include<kylinbot_core/kylin_vrc.h>
+
 #define BUF_LEN 256
 using namespace std;
 
@@ -105,7 +105,7 @@ void PullMsg(ros::Publisher & odom_pub)
 		//Dnl_ProcPosCalibMsg(&posCalibMsg);
 	}
 	if (Msg_Pop(&rx_fifo, rx_buf[1], &msg_head_vrc, &vrc)) {
-		Dnl_ProcVirtualRC(&vrc);
+		//Dnl_ProcPosCalibMsg(&posCalibMsg);
 	}
    // printf("Push in PULL tx: add %d size: %d",tx_fifo.m, tx_fifo.s);
    // cout<<"pull 2.5"<<endl;
@@ -274,8 +274,6 @@ int main(int argc, char ** argv)
 
     //Publish Odom
 
-    //Virtual Control Command Publisher
-    //ros::Publisher vrc_pub = n.advertise<
     ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>("kylinbo/odom", 100);
     ros::Rate r(50);
 
