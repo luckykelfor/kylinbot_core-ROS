@@ -1,4 +1,7 @@
 build/
 devel/
-src/*.txt
+src/CMakeLists.txt
+src/.idea/
+src/cmake-build-debug/
+src/cmake-build-release/
 

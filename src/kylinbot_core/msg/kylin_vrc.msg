@@ -1,2 +1,2 @@
 uint32 frame_id
-uint8  buf
+uint8[6]  buf

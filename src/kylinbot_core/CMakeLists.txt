@@ -9,7 +9,7 @@ project(kylinbot_core)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
         actionlib
-        move_base_msgs
+       # move_base_msgs
   roscpp
   rospy
   std_msgs
@@ -37,7 +37,7 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add a build_depend tag for "message_generation"
 ##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
 ##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
-##     but can be declared for certainty nonetheless:
+##     but can be d/home/kelforeclared for certainty nonetheless:
 ##     * add a run_depend tag for "message_runtime"
 ## * In this file (CMakeLists.txt):
 ##   * add "message_generation" and every package in MSG_DEP_SET to
@@ -207,12 +207,12 @@ include_directories(/usr/loca/include include/kylinbot_core include/kylinbot_cor
 link_directories(/usr/local/lib /opt/ros/indigo/lib)
 
 
-add_executable(main_control src/main_control.cpp ${sourcefiles} )
-
-target_link_libraries(main_control pthread   ${catkin_LIBRARIES})
-add_dependencies(main_control move_base_msgs)
-
-#include_directories(/usr/loca/include include/kylinbot_core include/kylinbot_core/asp/inc include/kylinbot_core/uart ${catkin_INCLUDE_DIRS})
+#add_executable(main_control src/main_control.cpp ${sourcefiles} )
+#
+#target_link_libraries(main_control pthread   ${catkin_LIBRARIES})
+#add_dependencies(main_control move_base_msgs)
+#
+##include_directories(/usr/loca/include include/kylinbot_core include/kylinbot_core/asp/inc include/kylinbot_core/uart ${catkin_INCLUDE_DIRS})
 
 add_executable(kylinbot_move ${sourcefiles} src/kylinbot_move.cpp)
 target_link_libraries(kylinbot_move  ${catkin_LIBRARIES} pthread tf)
